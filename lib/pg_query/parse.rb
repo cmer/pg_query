@@ -3,7 +3,13 @@ module PgQuery
     result, stderr = parse_protobuf(query)
 
     begin
-      result = PgQuery::ParseResult.decode(result)
+      result = if PgQuery::ParseResult.method(:decode).arity == 1
+                 PgQuery::ParseResult.decode(result)
+               elsif PgQuery::ParseResult.method(:decode).arity == -1
+                 PgQuery::ParseResult.decode(result, max_recursion_depth: 100)
+               else
+                 raise ArgumentError, 'Unsupported protobuf Ruby API'
+               end
     rescue Google::Protobuf::ParseError => e
       raise PgQuery::ParseError.new(format('Failed to parse tree: %s', e.message), __FILE__, __LINE__, -1)
     end
